@@ -1,0 +1,1 @@
+All pieces images come from https://chess.com 
