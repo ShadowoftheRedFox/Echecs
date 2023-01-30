@@ -95,7 +95,6 @@ declare global {
         update(scope: GameScope): GameScope;
 
         filterPositions(positions: number[]): number[];
-        pieceMove(event: DragEvent | MouseEvent): void;
         unblockedPositions(allowedPositions: number[], position: number, color: PiecesColor, checking?: boolean): number[];
 
         getCastlingSquares(allowedMoves: number[]): number[];
@@ -116,10 +115,6 @@ declare global {
         promote(pawn: Pawn): void;
         setClickedPiece(piece: Pawn | Rook | Knight | Bishop | Queen | King): void;
 
-        /**
-         * @deprecated
-         */
-        addEventListeners(): void;
         changeTurn(): void;
         clearSquares(): void;
     }

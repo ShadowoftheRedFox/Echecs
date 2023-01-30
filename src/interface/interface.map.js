@@ -42,6 +42,10 @@ class GameMapInterface extends GameInterfaces {
 
         /**@type {number} */
         this.delay = 0;
+        /**@type {GamePiece} */
+        this.enPassantRemoveW = null;
+        /**@type {GamePiece} */
+        this.enPassantRemoveB = null;
     }
 
     /**
@@ -119,11 +123,48 @@ class GameMapInterface extends GameInterfaces {
             }
         });
 
-        if (this.helpPannel) {
+        if (this.checkMatePannel) {
             ctx.fillStyle = "white";
             ctx.globalAlpha = 0.5;
             ctx.fillRect(this.offsetX, this.offsetY, this.caseDimension * 8, this.caseDimension * 8);
             ctx.globalAlpha = 1;
+
+            ctx.font = "bold 4em Sans";
+            ctx.fillStyle = "black";
+            switch (this.checkMatePannel) {
+                case "w":
+                    ctx.fillText("White won", Width / 2, Height / 3);
+                    break;
+                case "b":
+                    ctx.fillText("Black won", Width / 2, Height / 3);
+                    break;
+                case "d":
+                    ctx.fillText("Draw", Width / 2, Height / 3);
+                    break;
+                default:
+                    ctx.fillText("Unknown end?", Width / 2, Height / 3);
+                    break;
+            }
+            ctx.fillText("To replay, press R.", Width / 2, Height / 2);
+        } else if (this.helpPannel) {
+            ctx.fillStyle = "white";
+            ctx.globalAlpha = 0.5;
+            ctx.fillRect(this.offsetX, this.offsetY, this.caseDimension * 8, this.caseDimension * 8);
+            ctx.globalAlpha = 1;
+
+            ctx.font = "bold 40px sans-serif";
+            ctx.fillStyle = "black";
+            const msgs = [
+                "Press H to display this message.",
+                "Click a piece to select it.",
+                "Click a gray circle to move it here. Or an ennemy piece.",
+                "A pawn will automaticaly promote to a queen.", //TODO change when choice is possible
+                "The \"en passant\" move is not yet available." //TODO change when available
+            ];
+
+            msgs.forEach((msg, i) => {
+                ctx.fillText(msg, Width / 2, (Height - msgs.length * 45) / 2 + i * 45);
+            });
         }
 
         this.needsUpdate = false;
@@ -187,6 +228,7 @@ class GameMapInterface extends GameInterfaces {
                 new Rook(18, 'br2')
             ];
             this.resetGame = false;
+            this.checkMatePannel = false;
             this.turn = 'w';
         }
 
@@ -197,6 +239,15 @@ class GameMapInterface extends GameInterfaces {
             this.needsUpdate = true;
         }
 
+        // replay after end
+        if (KeyboardTrackerManager.pressed(['r']) === true) {
+            this.resetGame = true;
+            this.needsUpdate = true;
+        }
+
+        if (this.helpPannel || this.checkMatePannel) return;
+
+        // get player click for pieces
         for (let y = 0; y < 8; y++) {
             for (let x = 0; x < 8; x++) {
                 // only accept pieces of the current player
@@ -210,7 +261,7 @@ class GameMapInterface extends GameInterfaces {
                         this.setClickedPiece();
                         this.clearSquares();
                         this.needsUpdate = true;
-                    } else if (y * 10 + x + 11 != this.clickedPiece && piece.color === this.turn) {
+                    } else if (piece.color === this.turn) {
                         this.setClickedPiece(piece);
                         this.needsUpdate = true;
                     }
@@ -221,33 +272,6 @@ class GameMapInterface extends GameInterfaces {
 
     // big thanks to the author of https://github.com/AhmadAlkholy/Javascript-Chess-Game where I got the base functions from
     //TODO check for draw
-
-    /**
-     * @param {DragEvent | MouseEvent} event 
-     */
-    pieceMove(event) {
-        const name = event.target.getAttribute('id');
-        const allowedMoves = this.getPieceAllowedMoves(name);
-        if (allowedMoves) {
-            const position = this.getPieceByName(name).position;
-            const clickedSquare = document.getElementById(position);
-
-            /*if (event.type == 'click' && this.clickedPiece && this.clickedPiece.name == name) {
-                this.setClickedPiece(null);
-                return this.clearSquares();
-            }*/
-            clickedSquare.classList.add('clicked-square');
-
-            allowedMoves.forEach(allowedMove => {
-                if (document.body.contains(document.getElementById(allowedMove))) {
-                    document.getElementById(allowedMove).classList.add('allowed');
-                }
-            });
-        }
-        else {
-            this.clearSquares();
-        }
-    }
 
     changeTurn() {
         if (this.turn === 'w') {
@@ -419,7 +443,7 @@ class GameMapInterface extends GameInterfaces {
      * @returns {boolean}
      */
     positionHasExistingPiece(position) {
-        return this.getPieceByPos(position) != undefined;
+        return !!this.getPieceByPos(position);
     }
 
     /**
@@ -438,9 +462,8 @@ class GameMapInterface extends GameInterfaces {
         if (this.filterPositions([pos]).length === 0) return 0;
         // check if pos is not occupied by ally pieces
         const clickedPiece = this.clickedPiece;
-        if (this.getPieceAllowedMoves(clickedPiece.name).includes(pos)) {
+        if (clickedPiece && this.getPieceAllowedMoves(clickedPiece.name).includes(pos)) {
             if (clickedPiece) {
-                const newPosition = pos;
                 if (this.getPieceByPos(pos)) {
                     this.kill(this.getPieceByPos(pos));
                 }
@@ -450,9 +473,9 @@ class GameMapInterface extends GameInterfaces {
                 // }
 
                 if (clickedPiece.hasRank('k') || clickedPiece.hasRank('pawn'))
-                    clickedPiece.changePosition(newPosition, true, this);
+                    clickedPiece.changePosition(pos, true, this);
                 else
-                    clickedPiece.changePosition(newPosition);
+                    clickedPiece.changePosition(pos);
                 // remove check
                 this.getPieceByName((this.turn == 'w' ? 'w' : 'b') + 'k').isChecked = false;
                 this.clearSquares();
@@ -463,6 +486,22 @@ class GameMapInterface extends GameInterfaces {
                     } else {
                         this.getPieceByName((this.turn == 'w' ? 'w' : 'b') + 'k').isChecked = true;
                     }
+                } else {
+                    //check for draw
+                    // check if 2 pieces are left, the two kings
+                    if (this.pieces.length !== 2) {
+                        //check if there are moves left
+                        for (const piece of this.pieces) {
+                            if (piece.color === this.turn && this.getPieceAllowedMoves(piece.name).length > 0) {
+                                this.setClickedPiece();
+                                return 1;
+                            }
+                        }
+                    }
+                    // d for draw
+                    this.checkMatePannel = "d";
+                    console.log("Draw");
+                    return 0;
                 }
                 return 1;
             }
@@ -571,9 +610,6 @@ class GameMapInterface extends GameInterfaces {
      * @param {PiecesColor} color 
      */
     checkmate(color) {
-        // TODO 
-        const endScene = document.getElementById('endscene');
-        endScene.getElementsByClassName('winning-sign')[0].innerHTML = color + ' Wins';
-        endScene.classList.add('show');
+        this.checkMatePannel = color;
     }
 }
