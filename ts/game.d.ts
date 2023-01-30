@@ -18,7 +18,7 @@ declare global {
          * @param {number} position YX position starting from 1 to 8
          * @param {string} name Name of the piece
          */
-        constructor(position: number, name: string): GamePiece
+        constructor(position: number, name: string): GamePiece;
         position: number;
         rank: PiecesType | "q" | "k";
         name: PiecesName;
@@ -40,12 +40,12 @@ declare global {
     }
 
     class Bishop extends GamePiece {
-        constructor(position: number, name: string): Bishop
+        constructor(position: number, name: string): Bishop;
         getAllowedMoves(): number[];
     }
 
     class King extends GamePiece {
-        constructor(position: number, name: string): King
+        constructor(position: number, name: string): King;
         ableToCastle: boolean;
         isChecked: boolean;
         getAllowedMoves(): number[];
@@ -54,23 +54,25 @@ declare global {
     }
 
     class Knight extends GamePiece {
-        constructor(position: number, name: string): Knight
+        constructor(position: number, name: string): Knight;
         getAllowedMoves(): number[];
     }
 
     class Pawn extends GamePiece {
-        constructor(position: number, name: string): Pawn
+        constructor(position: number, name: string): Pawn;
+        /**True if the pawn has made his first move of 2 case. */
+        enPassantReady: boolean;
         getAllowedMoves(): number[];
         changePosition(position: number, promote = false): void;
     }
 
     class Queen extends GamePiece {
-        constructor(position: number, name: string): Queen
+        constructor(position: number, name: string): Queen;
         getAllowedMoves(): number[];
     }
 
     class Rook extends GamePiece {
-        constructor(position: number, name: string): Rook
+        constructor(position: number, name: string): Rook;
         ableToCastle: boolean;
         changePosition(position: number): void;
         getAllowedMoves(): number[];

@@ -169,6 +169,7 @@ class Knight extends GamePiece {
 class Pawn extends GamePiece {
     constructor(position, name) {
         super(position, name);
+        this.enPassantReady = false;
     }
 
     getAllowedMoves() {
@@ -185,8 +186,6 @@ class Pawn extends GamePiece {
 
         // attacks
         const attackMoves = [position + mathSign * 9, position + mathSign * 11];
-
-        // TODO en passant
 
         return [attackMoves, allowedMoves];
     }

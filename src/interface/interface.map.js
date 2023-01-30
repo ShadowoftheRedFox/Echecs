@@ -37,6 +37,8 @@ class GameMapInterface extends GameInterfaces {
 
         /**@type {boolean} */
         this.helpPannel = false;
+        /**@type {boolean} */
+        this.checkMatePannel = false;
 
         /**@type {number} */
         this.delay = 0;
@@ -146,7 +148,7 @@ class GameMapInterface extends GameInterfaces {
         }
 
         if (this.resetGame) {
-            //TODO reverse the board
+            //? reverse the board?
             this.pieces = [
                 new Rook(81, 'wr1'),
                 new Knight(82, 'wn1'),
@@ -202,7 +204,6 @@ class GameMapInterface extends GameInterfaces {
                     // + 11 because x and y start from 0, and you need (y+1)*10 + x + 1, so 11
                     const piece = this.getPieceByPos(y * 10 + x + 11);
                     if (this.allowedMoves && this.allowedMoves.includes(y * 10 + x + 11)) {
-                        //TODO update
                         this.movePiece(y * 10 + x + 11);
                         this.needsUpdate = true;
                     } else if (!piece) {
@@ -310,10 +311,13 @@ class GameMapInterface extends GameInterfaces {
         }
 
         if (this.clickedPiece.hasRank('p')) {
-            //TODO en passant
             for (const move of allowedPositions[0]) { //attacking moves
                 if (checking && this.myKingChecked(move)) continue;
                 if (otherBlockedPositions.indexOf(move) != -1) unblockedPositions.push(move);
+                // enPassant
+                // else if (this.getPieceByPos(move + (this.color === 'w' ? -10 : 10)) && (Math.floor(this.clickedPiece.position / 10) === 4 || Math.floor(this.clickedPiece.position / 10) === 5)) {
+                //     unblockedPositions.push(move);
+                // }
             }
             const blockedPositions = myBlockedPositions.concat(otherBlockedPositions);
             for (const move of allowedPositions[1]) { //moving moves
@@ -440,6 +444,10 @@ class GameMapInterface extends GameInterfaces {
                 if (this.getPieceByPos(pos)) {
                     this.kill(this.getPieceByPos(pos));
                 }
+                // if (this.getPieceByPos(pos + (this.color === 'w' ? -10 : 10)) && (Math.floor(clickedPiece.position / 10) === 4 || Math.floor(clickedPiece.position / 10) === 5)) {
+                //     //TODO en passant kill
+                //     this.kill(this.getPieceByPos(pos - (this.color === 'w' ? 10 : -10)));
+                // }
 
                 if (clickedPiece.hasRank('k') || clickedPiece.hasRank('pawn'))
                     clickedPiece.changePosition(newPosition, true, this);

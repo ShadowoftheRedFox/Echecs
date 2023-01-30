@@ -74,7 +74,7 @@ MouseTrackerManager.OnTouchMove = function (event) {
         MouseTrackerManager.lastMove[event.changedTouches.item(i).identifier.toString()].y = event.changedTouches.item(i).clientY;
         MouseTrackerManager.lastMove[event.changedTouches.item(i).identifier.toString()].date = Date.now();
         // there is no hover, so kinda useless, just stays here just in case
-        // MouseTrackerManager.stopedMoved(MouseTrackerManager.lastMove[event.changedTouches.item(i).identifier.toString()]);
+        MouseTrackerManager.stopedMoved(MouseTrackerManager.lastMove[event.changedTouches.item(i).identifier.toString()]);
     }
 };
 
@@ -119,15 +119,8 @@ MouseTrackerManager.OnMouseUnclick = function (event) {
  * @returns {boolean}
  */
 MouseTrackerManager.clickOver = function (x, y, w, h, time = 0) {
-    MouseTrackerManager.c++;
-    if (MouseTrackerManager.c % 1000 == 0) {
-        // console.log(MouseTrackerManager.checkOver(x, y, w, h, true, time), MouseTrackerManager.holding === true, MouseTrackerManager.checkOver(x, y, w, h, true, time) && MouseTrackerManager.holding === true);
-        MouseTrackerManager.c = 0;
-    }
     return MouseTrackerManager.checkOver(x, y, w, h, false, time) && MouseTrackerManager.holding === true;
 };
-
-MouseTrackerManager.c = 0;
 
 /**
  * @param {number} x
@@ -150,10 +143,6 @@ MouseTrackerManager.checkOver = function (x, y, w, h, mustMove = false, time = 0
 
         if (l.x >= x && l.x <= x + w && l.y >= y && l.y <= y + h) {
             if (time !== 0 && l.date + time < Date.now()) {
-                if (MouseTrackerManager.c % 1000 == 0) {
-                    // console.log("time");
-                    MouseTrackerManager.c = 0;
-                }
                 return false;
             }
             return true;
@@ -161,23 +150,25 @@ MouseTrackerManager.checkOver = function (x, y, w, h, mustMove = false, time = 0
         return false;
     } else {
         let over = false;
-        Object.keys(MouseTrackerManager.lastMove).forEach(e => {
-            const t = MouseTrackerManager.lastMove[e];
-            if (t.x >= x && t.x <= x + w && t.y >= y && t.y <= y + h) {
-                over = true;
-                if (time !== 0 && t.date < Date.now() - time) {
+        for (const e of Object.keys(MouseTrackerManager.lastMove)) {
+            const l = MouseTrackerManager.lastMove[e],
+                f = MouseTrackerManager.lastMove[e];
+            if (mustMove && l.x === f.x && l.y === f.y) {
+                over = false;
+            }
+
+            if (l.x >= x && l.x <= x + w && l.y >= y && l.y <= y + h) {
+                if (time !== 0 && l.date + time < Date.now()) {
                     over = false;
                 }
-            }
-            const o = MouseTrackerManager.oldMove[e];
-            if (o.x >= x && o.x <= x + w && o.y >= y && o.y <= y + h) {
                 over = true;
-                if (time !== 0 && o.date < Date.now() - time) {
-                    over = false;
-                }
             }
-        });
-        return over;
+
+            if (over === true) {
+                return true;
+            }
+        }
+        return false;
     }
 };
 
