@@ -278,9 +278,10 @@ declare global {
          * @param y
          * @param w
          * @param h
+         * @param time How young the click must be.
          * @returns {boolean} If it's holding over ot not.
          */
-        clickOver(x: number, y: number, w: number, h: number): boolean
+        clickOver(x: number, y: number, w: number, h: number, time?: number): boolean
 
         getCoos(): { x: number, y: number, date: number, id: number }
     }

@@ -239,8 +239,13 @@ class GameMapInterface extends GameInterfaces {
             this.needsUpdate = true;
         }
 
+        // update delay after each click
+        if (MouseTrackerManager.clickOver(0, 0, Width, Height) && this.delay + 200 < Date.now()) {
+            this.delay = Date.now();
+        }
+
         // replay after end
-        if (KeyboardTrackerManager.pressed(['r']) === true) {
+        if (this.checkMatePannel && (KeyboardTrackerManager.pressed(['r']) === true || this.delay + 200 < Date.now())) {
             this.resetGame = true;
             this.needsUpdate = true;
         }
