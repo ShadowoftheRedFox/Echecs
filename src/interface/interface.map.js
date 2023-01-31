@@ -100,8 +100,14 @@ class GameMapInterface extends GameInterfaces {
             const x = piece.position % 10 - 1;
             const y = Math.floor(piece.position / 10) - 1;
 
+            // draw green background if enPassant ready
+            if (piece.hasRank("p") && piece.enPassantReady === true) {
+                ctx.fillStyle = "#00ff0080";
+                ctx.fillRect(this.offsetX + x * this.caseDimension, this.offsetY + y * this.caseDimension, this.caseDimension, this.caseDimension);
+            }
+
             // draw red background if king is checked
-            if (piece.rank === "k" && piece.isChecked === true) {
+            if (piece.hasRank("k") && piece.isChecked === true) {
                 ctx.fillStyle = "red";
                 ctx.fillRect(this.offsetX + x * this.caseDimension, this.offsetY + y * this.caseDimension, this.caseDimension, this.caseDimension);
             }
@@ -276,7 +282,6 @@ class GameMapInterface extends GameInterfaces {
     }
 
     // big thanks to the author of https://github.com/AhmadAlkholy/Javascript-Chess-Game where I got the base functions from
-    //TODO check for draw
 
     changeTurn() {
         if (this.turn === 'w') {
@@ -344,9 +349,10 @@ class GameMapInterface extends GameInterfaces {
                 if (checking && this.myKingChecked(move)) continue;
                 if (otherBlockedPositions.indexOf(move) != -1) unblockedPositions.push(move);
                 // enPassant
-                // else if (this.getPieceByPos(move + (this.color === 'w' ? -10 : 10)) && (Math.floor(this.clickedPiece.position / 10) === 4 || Math.floor(this.clickedPiece.position / 10) === 5)) {
-                //     unblockedPositions.push(move);
-                // }
+                if (this.canEnPassant(move) === true) {
+                    unblockedPositions.push(move);
+                    console.log(move);
+                }
             }
             const blockedPositions = myBlockedPositions.concat(otherBlockedPositions);
             for (const move of allowedPositions[1]) { //moving moves
@@ -369,6 +375,24 @@ class GameMapInterface extends GameInterfaces {
         }
 
         return this.filterPositions(unblockedPositions);
+    }
+
+    /**
+     * @param {PiecesColor} color 
+     * @param {number} move 
+     */
+    canEnPassant(move) {
+        const color = this.clickedPiece.color;
+        if (Math.floor(move / 10) === 3 && color === "w") {
+            const ennemyPiece = this.getPieceByPos(move + 10);
+            if (!ennemyPiece || !ennemyPiece.hasRank("p") || ennemyPiece.color === color) return false;
+            if (ennemyPiece.enPassantReady === true) return true;
+        } else if (Math.floor(move / 10) === 6 && color === "b") {
+            const ennemyPiece = this.getPieceByPos(move - 10);
+            if (!ennemyPiece || !ennemyPiece.hasRank("p") || ennemyPiece.color === color) return false;
+            if (ennemyPiece.enPassantReady === true) return true;
+        }
+        return false;
     }
 
     /**
@@ -468,48 +492,67 @@ class GameMapInterface extends GameInterfaces {
         // check if pos is not occupied by ally pieces
         const clickedPiece = this.clickedPiece;
         if (clickedPiece && this.getPieceAllowedMoves(clickedPiece.name).includes(pos)) {
-            if (clickedPiece) {
-                if (this.getPieceByPos(pos)) {
-                    this.kill(this.getPieceByPos(pos));
-                }
-                // if (this.getPieceByPos(pos + (this.color === 'w' ? -10 : 10)) && (Math.floor(clickedPiece.position / 10) === 4 || Math.floor(clickedPiece.position / 10) === 5)) {
-                //     //TODO en passant kill
-                //     this.kill(this.getPieceByPos(pos - (this.color === 'w' ? 10 : -10)));
-                // }
-
-                if (clickedPiece.hasRank('k') || clickedPiece.hasRank('pawn'))
-                    clickedPiece.changePosition(pos, true, this);
-                else
-                    clickedPiece.changePosition(pos);
-                // remove check
-                this.getPieceByName((this.turn == 'w' ? 'w' : 'b') + 'k').isChecked = false;
-                this.clearSquares();
-                this.changeTurn();
-                if (this.king_checked(this.turn)) {
-                    if (this.king_dead(this.turn)) {
-                        this.checkmate(clickedPiece.color);
-                    } else {
-                        this.getPieceByName((this.turn == 'w' ? 'w' : 'b') + 'k').isChecked = true;
-                    }
+            if (this.getPieceByPos(pos)) {
+                this.kill(this.getPieceByPos(pos));
+            }
+            // en passant
+            if (this.canEnPassant(pos)) {
+                if (clickedPiece.color === "w") {
+                    this.kill(this.getPieceByPos(pos + 10));
                 } else {
-                    //check for draw
-                    // check if 2 pieces are left, the two kings
-                    if (this.pieces.length !== 2) {
-                        //check if there are moves left
-                        for (const piece of this.pieces) {
-                            if (piece.color === this.turn && this.getPieceAllowedMoves(piece.name).length > 0) {
-                                this.setClickedPiece();
-                                return 1;
-                            }
+                    this.kill(this.getPieceByPos(pos - 10));
+                }
+            }
+
+            // 2 case move
+            if (clickedPiece.hasRank("p") && Math.abs(clickedPiece.position - pos) === 20) {
+                clickedPiece.enPassantReady = true;
+                if (clickedPiece.color === "w") {
+                    this.enPassantRemoveW = clickedPiece;
+                } else {
+                    this.enPassantRemoveB = clickedPiece;
+                }
+            }
+
+            if (clickedPiece.hasRank('k') || clickedPiece.hasRank('pawn'))
+                clickedPiece.changePosition(pos, true, this);
+            else
+                clickedPiece.changePosition(pos);
+            // remove check
+            this.getPieceByName((this.turn === 'w' ? 'w' : 'b') + 'k').isChecked = false;
+            this.clearSquares();
+            this.changeTurn();
+            if (this.turn === 'w' && this.enPassantRemoveW && this.getPieceByName(this.enPassantRemoveW.name)) {
+                this.getPieceByName(this.enPassantRemoveW.name).enPassantReady = false;
+                this.enPassantRemoveW = null;
+            } else if (this.turn === 'b' && this.enPassantRemoveB && this.getPieceByName(this.enPassantRemoveB.name)) {
+                this.getPieceByName(this.enPassantRemoveB.name).enPassantReady = false;
+                this.enPassantRemoveB = null;
+            }
+
+            if (this.king_checked(this.turn)) {
+                if (this.king_dead(this.turn)) {
+                    this.checkmate(clickedPiece.color);
+                } else {
+                    this.getPieceByName((this.turn === 'w' ? 'w' : 'b') + 'k').isChecked = true;
+                }
+            } else {
+                //check for draw
+                // check if 2 pieces are left, the two kings
+                if (this.pieces.length !== 2) {
+                    //check if there are moves left
+                    for (const piece of this.pieces) {
+                        if (piece.color === this.turn && this.getPieceAllowedMoves(piece.name).length > 0) {
+                            this.setClickedPiece();
+                            return 1;
                         }
                     }
-                    // d for draw
-                    this.checkMatePannel = "d";
-                    console.log("Draw");
-                    return 0;
                 }
-                return 1;
+                // d for draw
+                this.checkMatePannel = "d";
+                return 0;
             }
+            return 1;
         }
         return 0;
     }
